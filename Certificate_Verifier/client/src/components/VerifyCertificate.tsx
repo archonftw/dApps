@@ -16,7 +16,7 @@ export default function VerifyCertificate() {
     const hashHex = await sha256(buffer)
 
     const hash = `0x${hashHex}` as `0x${string}`
-
+    console.log(hash.length)
     try {
 
       const cert = await verifyCert(hash)

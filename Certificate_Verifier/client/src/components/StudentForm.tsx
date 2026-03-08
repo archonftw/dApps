@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { generatePDF } from "../logic/code";
+import { issueCert } from "../logic/code";
 
 type FormData = {
   studentName: string;
@@ -23,24 +23,49 @@ export default function StudentForm() {
     }));
   };
 
-  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+  e.preventDefault();
 
-    if (!formData.studentName || !formData.course) {
-      setError("Both fields are required");
-      return;
-    }
+  if (!formData.studentName || !formData.course) {
+    setError("Both fields are required");
+    return;
+  }
 
-    generatePDF(formData)
+  try {
+    // Create deterministic certificate data
+    const certString = `${formData.studentName}-${formData.course}`
 
-    console.log(formData);
-    setError("");
+    // Convert to bytes
+    const encoder = new TextEncoder()
+    const data = encoder.encode(certString)
 
+    // Hash the data
+    const hashBuffer = await crypto.subtle.digest("SHA-256", data)
+
+    const hashArray = Array.from(new Uint8Array(hashBuffer))
+
+    const hashHex = hashArray
+      .map(b => b.toString(16).padStart(2, "0"))
+      .join("")
+
+    const hash = `0x${hashHex}` as `0x${string}`
+
+    console.log("CERT HASH:", hash)
+
+    // Send to blockchain
+    await issueCert(hash, formData.studentName, formData.course)
+
+    setError("")
     setFormData({
       studentName: "",
       course: "",
-    });
-  };
+    })
+
+  } catch (err) {
+    console.error(err)
+    setError("Failed to issue certificate")
+  }
+};
 
   return (
     <div style={styles.page}>
